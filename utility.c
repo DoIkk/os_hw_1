@@ -78,3 +78,27 @@ void printHelp(void){
     return;
 
 }
+
+void printPrompt(void){
+    char *pwd = getcwd(NULL,0);    // 현재 작업 디렉토리
+    char *user = getenv("USER");  // 사용자 이름
+    time_t now = time(NULL);
+    struct tm *local = localtime(&now);
+    char time_str[9];
+    strftime(time_str, sizeof(time_str), "%H:%M:%S", local);  // 현재 시간
+
+    // 사용자 이름, 현재 디렉토리, 시간으로 프롬프트 표시
+    if (user && pwd) {
+        printf("%s [%s] %s$ ", pwd, time_str,user);  
+    }     // 오류가 발생한 경우 적절한 오류 메시지를 출력
+    else {
+        if (!user) {
+            fprintf(stderr, "Failed to retrieve user from environment.\n");
+        }
+        if (!pwd) {
+            fprintf(stderr, "Failed to retrieve current directory.\n");
+        }
+        printf("$ ");  // 오류가 발생해도 기본 프롬프트 출력
+    }
+    free(pwd);
+}

@@ -7,6 +7,7 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <stdbool.h>
+#include <time.h>
 
 #define MAX 1024
 #define DELIMS "\r\t\n "
@@ -20,5 +21,6 @@ int tokenize(char *cmd, char *argv[100]);
 bool is_in_arr(char *element, char *arr[], int size);
 bool paramCheck(int tokensize);
 void printHelp(void);
+void printPrompt(void);
 
 #endif

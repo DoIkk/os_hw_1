@@ -1,7 +1,11 @@
 #include "shell.h"
 
 // 외부 명령어 목록 배열 정의
-char *extern_cmd_arr[] = {"quit", "cd", "help", "pwd", "type"};
+char *extern_cmd_arr[] = {"quit", "cd", "help", "pwd", "type","echo"};
+
+// 환경 변수 배열을 extern으로 가져오기
+extern char **environ;
+
 
 // execute 함수
 bool execute(char *cmd) {
@@ -22,8 +26,8 @@ bool execute(char *cmd) {
             perror("fork error\n");
             return 0;
         } else if (pid == 0) {  // 자식 프로세스에서 명령어 실행
-            execvp(pathname, argv);  // argv 배열 전체를 전달하여 명령어 실행
-            perror("execvp failed");  // 오류 발생 시
+            execve(pathname,argv,environ);
+            perror("execve failed");  // 오류 발생 시
             exit(EXIT_FAILURE);
         } else {  // 부모 프로세스는 자식이 종료될 때까지 기다림
             wait(NULL);
@@ -49,12 +53,16 @@ bool execute(char *cmd) {
         return true;
     }
 
-    if (strcmp(argv[0], "pwd") == 0) {
-        char *curr_dir = getcwd(NULL, 0);
-        printf("%s\n", curr_dir);
-        free(curr_dir);
-        return true;
+if (strcmp(argv[0], "pwd") == 0) {
+    char *curr_dir = getcwd(NULL, 0);  // 현재 작업 디렉토리 가져오기
+    if (curr_dir != NULL) {
+        printf("%s\n", curr_dir);  // 현재 작업 디렉토리 출력
+        free(curr_dir);  // getcwd로 동적 할당된 메모리 해제
+    } else {
+        perror("getcwd error");  // 에러 발생 시 메시지 출력
     }
+    return true;
+}
 
     if (strcmp(argv[0], "type") == 0) {
         for (int token = 1; argv[token] != NULL; token++) {
@@ -73,6 +81,14 @@ bool execute(char *cmd) {
 
     if (strcmp(argv[0], "help") == 0) {
         printHelp();
+        return true;
+    }
+
+    if (strcmp(argv[0], "echo") == 0) {
+        for (int i = 1; argv[i] != NULL; i++) {
+            printf("%s ", argv[i]);
+        }
+        printf("\n");
         return true;
     }
 
