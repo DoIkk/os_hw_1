@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <time.h>
+#include <fcntl.h>
 
 #define MAX 1024
 #define DELIMS "\r\t\n "
@@ -22,5 +23,6 @@ bool is_in_arr(char *element, char *arr[], int size);
 bool paramCheck(int tokensize);
 void printHelp(void);
 void printPrompt(void);
+bool redirection(char *argv[], int tokensize)
 
 #endif

@@ -6,6 +6,40 @@ char *extern_cmd_arr[] = {"quit", "cd", "help", "pwd", "type","echo"};
 // 환경 변수 배열을 extern으로 가져오기
 extern char **environ;
 
+// 리다이렉션 여부를 확인하고 리다이렉션 처리
+bool redirection(char *argv[], int tokensize) {
+    int fd;
+    
+    for (int i = 0; i < tokensize; i++) {
+        // 출력 리다이렉션 처리 (">")
+        if (strcmp(argv[i], ">") == 0 && argv[i + 1] != NULL) {
+            fd = open(argv[i + 1], O_WRONLY | O_CREAT | O_TRUNC, 0644); // 파일을 쓰기 모드로 열기
+            if (fd == -1) {
+                perror("open");
+                return false;
+            }
+            dup2(fd, STDOUT_FILENO);  // 표준 출력을 파일로 리다이렉트
+            close(fd);
+
+            argv[i] = NULL;  // 리다이렉션 기호와 파일명을 argv에서 제거
+            return true;
+        }
+        // 입력 리다이렉션 처리 ("<")
+        if (strcmp(argv[i], "<") == 0 && argv[i + 1] != NULL) {
+            fd = open(argv[i + 1], O_RDONLY);  // 파일을 읽기 모드로 열기
+            if (fd == -1) {
+                perror("open");
+                return false;
+            }
+            dup2(fd, STDIN_FILENO);  // 표준 입력을 파일로 리다이렉트
+            close(fd);
+
+            argv[i] = NULL;  // 리다이렉션 기호와 파일명을 argv에서 제거
+            return true;
+        }
+    }
+    return false;
+}
 
 // execute 함수
 bool execute(char *cmd) {
@@ -55,12 +89,12 @@ bool execute(char *cmd) {
 
 if (strcmp(argv[0], "pwd") == 0) {
     char *curr_dir = getcwd(NULL, 0);  // 현재 작업 디렉토리 가져오기
-    if (curr_dir != NULL) {
+    {if (curr_dir != NULL) {
         printf("%s\n", curr_dir);  // 현재 작업 디렉토리 출력
         free(curr_dir);  // getcwd로 동적 할당된 메모리 해제
     } else {
         perror("getcwd error");  // 에러 발생 시 메시지 출력
-    }
+    }}
     return true;
 }
 
