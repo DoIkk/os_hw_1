@@ -6,64 +6,55 @@ char *extern_cmd_arr[] = {"quit", "cd", "help", "pwd", "type","echo"};
 // 환경 변수 배열을 extern으로 가져오기
 extern char **environ;
 
-// 리다이렉션 여부를 확인하고 리다이렉션 처리
-bool redirection(char *argv[], int tokensize) {
-    int fd;
-    
-    for (int i = 0; i < tokensize; i++) {
-        // 출력 리다이렉션 처리 (">")
-        if (strcmp(argv[i], ">") == 0 && argv[i + 1] != NULL) {
-            fd = open(argv[i + 1], O_WRONLY | O_CREAT | O_TRUNC, 0644); // 파일을 쓰기 모드로 열기
-            if (fd == -1) {
-                perror("open");
-                return false;
-            }
-            dup2(fd, STDOUT_FILENO);  // 표준 출력을 파일로 리다이렉트
-            close(fd);
-
-            argv[i] = NULL;  // 리다이렉션 기호와 파일명을 argv에서 제거
-            return true;
-        }
-        // 입력 리다이렉션 처리 ("<")
-        if (strcmp(argv[i], "<") == 0 && argv[i + 1] != NULL) {
-            fd = open(argv[i + 1], O_RDONLY);  // 파일을 읽기 모드로 열기
-            if (fd == -1) {
-                perror("open");
-                return false;
-            }
-            dup2(fd, STDIN_FILENO);  // 표준 입력을 파일로 리다이렉트
-            close(fd);
-
-            argv[i] = NULL;  // 리다이렉션 기호와 파일명을 argv에서 제거
-            return true;
-        }
-    }
-    return false;
-}
-
 // execute 함수
 bool execute(char *cmd) {
-    char *argv[100];  // 명령어와 인자를 저장할 배열
-    int tokensize = tokenize(cmd, argv);  // tokenize 함수로 명령어 분리
-    char pathname[MAX];  // 명령어 경로를 저장할 변수
+    char *argv[100];
+    char pathname[MAX];
+    char *input_file = NULL;
+    char *output_file = NULL;
+    int append = 0;  // 0 for '>', 1 for '>>'
+    
+    int tokensize = tokenize(cmd, argv, &input_file, &output_file, &append);
 
-    // 아무것도 입력하지 않은 경우
     if (tokensize == 0) {
         return true;
     }
 
-    // 외부 명령어가 PATH에 존재하는지 확인
+    // 외부 명령어
     if (is_in_path(argv, pathname)) {
-        // 프로세스 생성
         pid_t pid = fork();
-        if (pid == -1) {  // fork 실패 시
+        if (pid == -1) {
             perror("fork error\n");
-            return 0;
-        } else if (pid == 0) {  // 자식 프로세스에서 명령어 실행
-            execve(pathname,argv,environ);
-            perror("execve failed");  // 오류 발생 시
+            return false;
+        } else if (pid == 0) {
+            // Redirection
+            if (input_file) {
+                int fd_in = open(input_file, O_RDONLY);
+                if (fd_in == -1) {
+                    perror("input redirection error");
+                    exit(EXIT_FAILURE);
+                }
+                dup2(fd_in, STDIN_FILENO);  // 표준 입력을 파일로 리다이렉트
+                close(fd_in);
+            }
+            if (output_file) {
+                int fd_out;
+                if (append) {
+                    fd_out = open(output_file, O_WRONLY | O_CREAT | O_APPEND, 0644);  // 추가
+                } else {
+                    fd_out = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);  // 덮어쓰기
+                }
+                if (fd_out == -1) {
+                    perror("output redirection error");
+                    exit(EXIT_FAILURE);
+                }
+                dup2(fd_out, STDOUT_FILENO);  // 표준 출력을 파일로 리다이렉트
+                close(fd_out);
+            }
+            execve(pathname, argv, environ);
+            perror("execve failed");
             exit(EXIT_FAILURE);
-        } else {  // 부모 프로세스는 자식이 종료될 때까지 기다림
+        } else {
             wait(NULL);
             return true;
         }
