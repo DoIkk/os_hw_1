@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 #define MAX 1024
 #define DELIMS "\r\t\n "
